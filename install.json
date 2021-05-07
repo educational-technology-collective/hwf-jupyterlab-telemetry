@@ -1,0 +1,5 @@
+{
+  "packageManager": "python",
+  "packageName": "hwf-jupyterlab-telemetry",
+  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package hwf-jupyterlab-telemetry"
+}
