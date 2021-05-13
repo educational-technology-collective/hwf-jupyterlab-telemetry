@@ -76,8 +76,9 @@ You can watch the source directory and run JupyterLab at the same time in differ
 ```bash
 # Watch the source directory in one terminal, automatically rebuilding when needed
 jlpm run watch
-# Run JupyterLab in another terminal
-jupyter lab
+
+# Run JupyterLab in another terminal, restarting when the Python files are changed
+jupyter lab --no-browser --autoreload
 ```
 
 With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
