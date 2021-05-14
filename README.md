@@ -81,6 +81,8 @@ jlpm run watch
 jupyter lab --no-browser --autoreload
 ```
 
+(Note: Adding "`&`" to the ends of the commands above will allow them to run in the backdround.  That will allow both processes to run in the same terminal, which may be more convenient.)
+
 With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
 
 By default, the `jlpm run build` command generates the source maps for this extension to make it easier to debug using the browser dev tools. To also generate source maps for the JupyterLab core extensions, you can run the following command:
@@ -100,4 +102,5 @@ pip uninstall hwf-jupyterlab-telemetry
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
 folder is located. Then you can remove the symlink named `hwf-jupyterlab-telemetry` within that folder.
+
 # hwf-jupyterlab-telemetry
