@@ -441,6 +441,8 @@ const extension: JupyterFrontEndPlugin<void> = {
 
       let eventMessageHandler = new EventMessageHandler({ notebookState, handler });
 
+      console.log(notebookPanel.content);
+
       new OpenNotebookEvent({ notebook: notebookPanel.content, handler: eventMessageHandler })
       new CellsChangedEvent({ notebook: notebookPanel.content, handler: eventMessageHandler });
       new SaveNotebookEvent({ notebookPanel: notebookPanel, handler: eventMessageHandler });

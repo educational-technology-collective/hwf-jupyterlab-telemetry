@@ -5,7 +5,8 @@ import tornado
 import traitlets
 import traitlets.config
 
-from .eventsink import ConsoleSink, EventSink
+from .eventsink import EventSink
+from .eventsink.caliper import CaliperSink
 
 class TelemetryHandler(traitlets.config.LoggingConfigurable, APIHandler):
     def __init__(self, *args, event_sink, **kwargs):
@@ -39,7 +40,7 @@ def setup_handlers(server_app: "ServerApp"):
     # Setup the event sink
     # We initialize it here so that we don't re-create it for every single event
     # TODO: add configuration option to use Caliper sink instead
-    event_sink = ConsoleSink(parent=server_app)
+    event_sink = CaliperSink(parent=server_app)
     
     # Register our handler for /hwf-juptyerlab-telemetry/event
     route_pattern = url_path_join(base_url, "hwf-jupyterlab-telemetry", "event")
