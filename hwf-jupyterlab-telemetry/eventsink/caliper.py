@@ -6,11 +6,25 @@ import pytz
 from caliper.base import ensure_type
 from caliper.constants import ENTITY_TYPES
 
-class JupyterEvent(caliper.events.Event):
+
+# class JupyterEvent(caliper.events.Event):
+class JupyterEvent(caliper.events.ToolUseEvent):
     def __init__(self, **kwargs):
+        # super().__init__(self, **kwargs)
+        super().__init__()
         ensure_type(self.actor, ENTITY_TYPES["PERSON"])
-        ensure_type(self.target, ENTITY_TYPES["SOFTWARE_APPLICATION"], optional=True)
-        ensure_type(self.generated, ENTITY_TYPES["AGGREGATE_MEASURE_COLLECTION"], optional=True)
+        ensure_type(self.object, ENTITY_TYPES["SOFTWARE_APPLICATION"])
+        ensure_type(self.target, ENTITY_TYPES["SOFTWARE_APPLICATION"],
+                    optional=True)
+        ensure_type(
+            self.generated, ENTITY_TYPES["AGGREGATE_MEASURE_COLLECTION"],
+            optional=True
+        )
+
+    # def __init__(self, **kwargs):
+    #     ensure_type(self.actor, ENTITY_TYPES["PERSON"])
+    #     ensure_type(self.target, ENTITY_TYPES["SOFTWARE_APPLICATION"], optional=True)
+    #     ensure_type(self.generated, ENTITY_TYPES["AGGREGATE_MEASURE_COLLECTION"], optional=True)
 
 
 class CaliperSink(EventSink):
@@ -18,7 +32,7 @@ class CaliperSink(EventSink):
         super().__init__(**kwargs)
         # Note: the "lti.tools" URL can be opened in browser to see 
         # events that have been sent to the endpoint
-        endpointUrl = 'https://lti.tools/caliper/event?key=hwf-jupyter&limit=0'
+        endpointUrl = 'https://lti.tools/caliper/event?key=hwf-jupyter-lsloan&limit=0'
         endpointKey = 'your-caliper-endpoint-key'
 
         config = caliper.HttpOptions(
@@ -43,7 +57,6 @@ class CaliperSink(EventSink):
         self.actor = actor
         self.ed_app = ed_app
 
-
     def handle_event(self, event: dict, metadata: dict):
         """
         TODO: We need to batch events (e.g., send 100 events in 1 batch)
@@ -56,8 +69,9 @@ class CaliperSink(EventSink):
         object = caliper.entities.SoftwareApplication(
             id='urn:umich:jupyter:notebook:notebook_id_here')
 
-        # event = caliper.events.ToolUseEvent(
-        event = JupyterEvent(
+        # event = caliper.events.Event( # complains abt. missing UUID
+        # event = JupyterEvent( # error when calling super
+        event = caliper.events.ToolUseEvent(
             action=caliper.constants.CALIPER_ACTIONS['USED'],
             eventTime=event_time,
             actor=self.actor,
@@ -67,7 +81,7 @@ class CaliperSink(EventSink):
                 "event": event,
                 "metadata": metadata,
             },
-            session={} # some representation of running JupyterLab app
+            session={}  # some representation of running JupyterLab app
         )
 
         # described_objects are those represented as ID only.
