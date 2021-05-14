@@ -101,7 +101,7 @@ class EventMessageHandler {
       let response: string;
 
       try { // to get the user id.
-        response = await requestAPI<any>('api', { method: 'POST', body: JSON.stringify(message) });
+        response = await requestAPI<any>('event', { method: 'POST', body: JSON.stringify(message) });
       } catch (reason) {
 
         console.error(reason);
