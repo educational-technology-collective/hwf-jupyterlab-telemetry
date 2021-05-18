@@ -10,7 +10,7 @@
     "moduleResolution": "node",
     "noEmitOnError": true,
     "noImplicitAny": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false, // Changed this from true to false on 2021-05-18.
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "outDir": "lib",

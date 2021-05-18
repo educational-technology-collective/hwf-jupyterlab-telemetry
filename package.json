@@ -17,6 +17,7 @@
     "email": ""
   },
   "files": [
+    "schema/**/*.json",
     "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
     "style/**/*.{css,.js,eot,gif,html,jpg,json,png,svg,woff2,ttf}"
   ],
@@ -53,6 +54,7 @@
     "@jupyterlab/mainmenu": "^3.0.5",
     "@jupyterlab/notebook": "^3.0.7",
     "@jupyterlab/services": "^6.0.5",
+    "@jupyterlab/settingregistry": "^3.0.5",
     "@lumino/commands": "^1.12.0"
   },
   "devDependencies": {
@@ -74,6 +76,7 @@
   ],
   "styleModule": "style/index.js",
   "jupyterlab": {
+    "schemaDir": "schema",
     "discovery": {
       "server": {
         "managers": [
