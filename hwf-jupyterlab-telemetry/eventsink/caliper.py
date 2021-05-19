@@ -69,7 +69,7 @@ class CaliperSink(EventSink):
                 extensions=extensions,
                 session=session
             )
-        elif eventData['event_name'] == 'active_cell_changed':
+        elif eventData['event_name'] in ['active_cell_changed', 'scroll']:
             object = caliper.entities.DigitalResource(
                 id=notebookId)
 
