@@ -56,12 +56,16 @@ class CaliperSink(EventSink):
         # TODO: make this reference the specific notebook file in S3
         notebookId = 'urn:umich:jupyter:notebook:notebook_id_here'
 
-        if eventData['event_name'] == 'save_notebook':
+        if eventData['event_name'] in ['open_notebook', 'save_notebook']:
             object = caliper.entities.DigitalResource(
                 id=notebookId)
 
+            action = caliper.constants.CALIPER_ACTIONS['SAVED'] \
+                if eventData['event_name'] == 'save_notebook' else \
+                caliper.constants.CALIPER_ACTIONS['RETRIEVED']
+
             event = caliper.events.ResourceManagementEvent(
-                action=caliper.constants.CALIPER_ACTIONS['SAVED'],
+                action=action,
                 eventTime=event_time,
                 actor=self.actor,
                 edApp=self.ed_app,
