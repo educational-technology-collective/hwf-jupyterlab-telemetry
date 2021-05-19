@@ -74,7 +74,7 @@ export class AWSAPIGatewayHandler extends SettingsSupplicant implements IHandler
             let epochTime = message.aws_response.context["request-time-epoch"];
             let uuid = message.aws_response.context["request-id"];
             
-            message.path = [path, epochTime, uuid].join("/");
+            message.path = [path, epochTime + "-" + uuid].join("/");
 
             console.log("JL Server Request: ", message);
 
