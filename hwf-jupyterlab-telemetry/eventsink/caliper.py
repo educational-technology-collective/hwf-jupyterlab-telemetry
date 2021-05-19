@@ -69,6 +69,19 @@ class CaliperSink(EventSink):
                 extensions=extensions,
                 session=session
             )
+        elif eventData['event_name'] == 'active_cell_changed':
+            object = caliper.entities.DigitalResource(
+                id=notebookId)
+
+            event = caliper.events.NavigationEvent(
+                action=caliper.constants.CALIPER_ACTIONS['NAVIGATED_TO'],
+                eventTime=event_time,
+                actor=self.actor,
+                edApp=self.ed_app,
+                object=object,
+                extensions=extensions,
+                session=session
+            )
         else:
             # TODO: make this reference the specific notebook file in S3
             object = caliper.entities.SoftwareApplication(
