@@ -216,7 +216,7 @@ export class EventMessageHandler {
 const PLUGIN_ID = 'hwf-jupyterlab-telemetry:plugin';
 
 /**
- * Initialization data for the etc-jupyterlab-telemetry extension.
+ * Initialization data for the hwf-jupyterlab-telemetry extension.
  */
 const extension: JupyterFrontEndPlugin<object> = {
   id: PLUGIN_ID,
@@ -242,7 +242,7 @@ const extension: JupyterFrontEndPlugin<object> = {
       // try { // to get the user userId.
       //   userId = await requestAPI<any>(resource);
       // } catch (e) {
-      //   console.error(`Error on GET /etc-jupyterlab-telemetry/${resource}.\n${e}`);
+      //   console.error(`Error on GET /hwf-jupyterlab-telemetry/${resource}.\n${e}`);
       // }
 
       // userId = (userId == "UNDEFINED" ? app.serviceManager.settings.serverSettings.token : userId);
@@ -278,6 +278,7 @@ const extension: JupyterFrontEndPlugin<object> = {
           path: notebookPanel.context.path
         });
 
+        // Events
         new SaveNotebookEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,

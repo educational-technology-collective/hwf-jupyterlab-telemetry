@@ -46,7 +46,9 @@ export class AWSAPIGatewayHandler extends SettingsSupplicant implements IHandler
             if (!this._enable)
                 return;
 
-            response = await fetch([this._url, this._bucket, this._path].join("/"), {
+            let path = [this._url, this._bucket, this._path].join("/");
+
+            response = await fetch(path, {
                 method: "POST",
                 mode: "cors",
                 cache: "no-cache",
@@ -68,6 +70,11 @@ export class AWSAPIGatewayHandler extends SettingsSupplicant implements IHandler
             }
 
             message.aws_response = await response.json()
+
+            let epochTime = message.aws_response.context["request-time-epoch"];
+            let uuid = message.aws_response.context["request-id"];
+            
+            message.path = [path, epochTime, uuid].join("/");
 
             console.log("JL Server Request: ", message);
 
