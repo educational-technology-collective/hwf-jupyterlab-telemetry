@@ -57,15 +57,26 @@ class CaliperSink(EventSink):
         # TODO: some representation of running JupyterLab app
         session={}
 
-        event = caliper.events.ToolUseEvent(
-            action=caliper.constants.CALIPER_ACTIONS['USED'],
-            eventTime=event_time,
-            actor=self.actor,
-            edApp=self.ed_app,
-            object=object,
-            extensions=extensions,
-            session=session
-        )
+        if eventData['event_name'] == 'save_notebook':
+            event = caliper.events.ResourceManagementEvent(
+                action=caliper.constants.CALIPER_ACTIONS['SAVED'],
+                eventTime=event_time,
+                actor=self.actor,
+                edApp=self.ed_app,
+                object=object,
+                extensions=extensions,
+                session=session
+            )
+        else:
+            event = caliper.events.ToolUseEvent(
+                action=caliper.constants.CALIPER_ACTIONS['USED'],
+                eventTime=event_time,
+                actor=self.actor,
+                edApp=self.ed_app,
+                object=object,
+                extensions=extensions,
+                session=session
+            )
 
         # `described_objects` are those represented as ID only
         self.sensor.send(event, described_objects=(
