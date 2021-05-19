@@ -44,10 +44,6 @@ class CaliperSink(EventSink):
         # ISO 8601 string with milliseconds and "Z" for GMT.
         event_time = datetime.now(tz=pytz.UTC).isoformat()[:23] + 'Z'
 
-        # TODO: make this reference the specific notebook file in S3
-        object = caliper.entities.SoftwareApplication(
-            id='urn:umich:jupyter:notebook:notebook_id_here')
-
         # TODO: find appropriate properties for important values
         extensions = {
             "eventData": eventData,
@@ -55,9 +51,15 @@ class CaliperSink(EventSink):
         }
 
         # TODO: some representation of running JupyterLab app
-        session={}
+        session = {}
+
+        # TODO: make this reference the specific notebook file in S3
+        notebookId = 'urn:umich:jupyter:notebook:notebook_id_here'
 
         if eventData['event_name'] == 'save_notebook':
+            object = caliper.entities.DigitalResource(
+                id=notebookId)
+
             event = caliper.events.ResourceManagementEvent(
                 action=caliper.constants.CALIPER_ACTIONS['SAVED'],
                 eventTime=event_time,
@@ -68,6 +70,10 @@ class CaliperSink(EventSink):
                 session=session
             )
         else:
+            # TODO: make this reference the specific notebook file in S3
+            object = caliper.entities.SoftwareApplication(
+                id=notebookId)
+
             event = caliper.events.ToolUseEvent(
                 action=caliper.constants.CALIPER_ACTIONS['USED'],
                 eventTime=event_time,
