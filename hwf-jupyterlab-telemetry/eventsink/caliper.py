@@ -40,18 +40,30 @@ class CaliperSink(EventSink):
         # ISO 8601 string with milliseconds and "Z" for GMT.
         event_time = datetime.now(tz=pytz.UTC).isoformat()[:23] + 'Z'
 
-        actor = caliper.entities.Person(
-            id='urn:umich:jupyter:user:' +
-               eventData.get('user_id', '__unknown__'))
+        # user ID will be from event data, from `USER` envvar, or "__unknown__"
+        userIdDefault = 'getenv:' + os.getenv('USER', '__unknown__');
+        userId = eventData.get('user_id', userIdDefault)  # may be empty string
+        userId = userId if userId else userIdDefault
+        actor = caliper.entities.Person(id='urn:umich:jupyter:user:' + userId)
 
         # TODO: find appropriate properties for important values
         extensions = {"eventData": eventData,
                       "metadata": metadata,
                       }
 
-        # TODO: some representation of running JupyterLab app
-        session = {}
+        # TODO: find better representation of running JupyterLab app
+        # This value is returned by AWS when notebook is saved to S3
+        # not certain whether it is close enough to represent a session,
+        # but it is good enough for proof of concept purposes.
+        _, sessionId, _ = (eventData
+                           .get('aws_response', {})
+                           .get('params', {})
+                           .get('header', {})
+                           .get('Via', '* __unknown__ *')).split(None, 2)
+        session = caliper.entities.Session(
+            id='urn:umich:jupyter:session:' + sessionId)
 
+        # reference to specific notebook file in S3
         objectId = eventData.get('path',
                                  'urn:umich:jupyter:notebook:__unknown__')
 
@@ -88,7 +100,6 @@ class CaliperSink(EventSink):
                 session=session
             )
         else:
-            # TODO: make this reference the specific notebook file in S3
             object = caliper.entities.SoftwareApplication(
                 id=objectId)
 
@@ -104,4 +115,4 @@ class CaliperSink(EventSink):
 
         # `described_objects` are those represented as ID only
         self.sensor.send(event, described_objects=(
-            actor.id, self.ed_app.id, object.id))
+            actor.id, self.ed_app.id, object.id, session.id))
