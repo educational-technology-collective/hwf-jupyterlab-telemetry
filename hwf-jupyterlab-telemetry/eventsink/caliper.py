@@ -28,10 +28,6 @@ class CaliperSink(EventSink):
         sensor.config.DEBUG = True
         self.sensor = sensor
 
-        # FIXME: `os.getenv('USER')` OK in some env., maybe not Docker ones
-        self.actor = caliper.entities.Person(
-            id='urn:umich:jupyter:user:' + os.getenv('USER'))
-
         self.ed_app = caliper.entities.SoftwareApplication(
             id='urn:umich:jupyter:notebook')
 
@@ -44,43 +40,48 @@ class CaliperSink(EventSink):
         # ISO 8601 string with milliseconds and "Z" for GMT.
         event_time = datetime.now(tz=pytz.UTC).isoformat()[:23] + 'Z'
 
+        actor = caliper.entities.Person(
+            id='urn:umich:jupyter:user:' +
+               eventData.get('user_id', '__unknown__'))
+
         # TODO: find appropriate properties for important values
-        extensions = {
-            "eventData": eventData,
-            "metadata": metadata,
-        }
+        extensions = {"eventData": eventData,
+                      "metadata": metadata,
+                      }
 
         # TODO: some representation of running JupyterLab app
         session = {}
 
-        # TODO: make this reference the specific notebook file in S3
-        notebookId = 'urn:umich:jupyter:notebook:notebook_id_here'
+        objectId = eventData.get('path',
+                                 'urn:umich:jupyter:notebook:__unknown__')
 
-        if eventData['event_name'] in ['open_notebook', 'save_notebook']:
+        eventType = eventData.get('event_name')
+
+        if eventType in ['open_notebook', 'save_notebook']:
             object = caliper.entities.DigitalResource(
-                id=notebookId)
+                id=objectId)
 
             action = caliper.constants.CALIPER_ACTIONS['SAVED'] \
-                if eventData['event_name'] == 'save_notebook' else \
+                if eventType == 'save_notebook' else \
                 caliper.constants.CALIPER_ACTIONS['RETRIEVED']
 
             event = caliper.events.ResourceManagementEvent(
                 action=action,
                 eventTime=event_time,
-                actor=self.actor,
+                actor=actor,
                 edApp=self.ed_app,
                 object=object,
                 extensions=extensions,
                 session=session
             )
-        elif eventData['event_name'] in ['active_cell_changed', 'scroll']:
+        elif eventType in ['active_cell_changed', 'scroll']:
             object = caliper.entities.DigitalResource(
-                id=notebookId)
+                id=objectId)
 
             event = caliper.events.NavigationEvent(
                 action=caliper.constants.CALIPER_ACTIONS['NAVIGATED_TO'],
                 eventTime=event_time,
-                actor=self.actor,
+                actor=actor,
                 edApp=self.ed_app,
                 object=object,
                 extensions=extensions,
@@ -89,12 +90,12 @@ class CaliperSink(EventSink):
         else:
             # TODO: make this reference the specific notebook file in S3
             object = caliper.entities.SoftwareApplication(
-                id=notebookId)
+                id=objectId)
 
             event = caliper.events.ToolUseEvent(
                 action=caliper.constants.CALIPER_ACTIONS['USED'],
                 eventTime=event_time,
-                actor=self.actor,
+                actor=actor,
                 edApp=self.ed_app,
                 object=object,
                 extensions=extensions,
@@ -103,4 +104,4 @@ class CaliperSink(EventSink):
 
         # `described_objects` are those represented as ID only
         self.sensor.send(event, described_objects=(
-            self.actor.id, self.ed_app.id, object.id))
+            actor.id, self.ed_app.id, object.id))
