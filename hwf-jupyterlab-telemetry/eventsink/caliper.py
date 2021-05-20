@@ -64,8 +64,10 @@ class CaliperSink(EventSink):
             id='urn:umich:jupyter:session:' + sessionId)
 
         # reference to specific notebook file in S3
-        objectId = eventData.get('path',
-                                 'urn:umich:jupyter:notebook:__unknown__')
+        objectId = (eventData.get('path',
+                                  'urn:umich:jupyter:notebook:__unknown__') +
+                    '#' +
+                    eventData.get('notebook_path', '__unknown__'))
 
         eventType = eventData.get('event_name')
 
