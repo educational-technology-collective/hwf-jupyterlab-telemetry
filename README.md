@@ -1,6 +1,6 @@
 # hwf-jupyterlab-telemetry
 
-[![repo social preview image](https://repository-images.githubusercontent.com/365260663/1b881e00-b95b-11eb-9339-4d0ccc89821c)](#)
+[![repo social preview image](https://repository-images.githubusercontent.com/365260663/1b881e00-b95b-11eb-9339-4d0ccc89821c)](#hwf-jupyterlab-telemetry)
 
 ![Github Actions Status](https://github.com/educational-technology-collective/hwf-jupyterlab-telemetry.git/workflows/Build/badge.svg)[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/educational-technology-collective/hwf-jupyterlab-telemetry.git/main?urlpath=lab)
 
