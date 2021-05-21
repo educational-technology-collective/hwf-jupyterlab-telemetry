@@ -6,6 +6,17 @@
 
 A JupyterLab extension.
 
+This prototype extension observes user actions in the JupyterLab UI, sends data about the actions to the JupyterLab server, which then sends events in IMS Global's Caliper format to an eventstore.  Among the events logged are:
+
+* notebook opened
+* notebook saved
+* notebook scrolled
+* cell selected
+* cell added
+* cell edited
+* cell executed
+ 
+When notebooks are opened, their contents are stored in AWS S3, and the subsequent Caliper events refer to that resource.  As users' actions modify the contents of notebook cells, the new contents are included in the Caliper event.  In this way, by following the event stream, once can reconstruct the user's actions on the notebook.  In theory, the resulting notebook should be the same as the user's notebook in the end.
 
 This extension is composed of a Python package named `hwf-jupyterlab-telemetry`
 for the server extension and a NPM package named `hwf-jupyterlab-telemetry`
