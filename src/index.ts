@@ -1,4 +1,5 @@
 import {
+  ILayoutRestorer,
   JupyterFrontEnd,
   JupyterFrontEndPlugin,
   JupyterLab
@@ -36,30 +37,45 @@ import {
   DocumentRegistry
 } from "@jupyterlab/docregistry";
 
-import {
-  requestAPI
-} from "./handler";
+import { IMainMenu } from '@jupyterlab/mainmenu';
+
+import { Menu, Widget, DockLayout } from '@lumino/widgets';
 
 import {
-  AWSAPIGatewayHandler
-} from "./aws_api_gateway_handler"
+  ICommandPalette,
+  MainAreaWidget,
+  WidgetTracker
+} from '@jupyterlab/apputils';
+
+import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+
+import { addIcon, clearIcon, listIcon } from '@jupyterlab/ui-components';
+
+import { requestAPI } from "./handler";
+
 
 import {
-  ICellMeta,
-  IHandler
-} from "./types";
-
-import { 
-  SaveNotebookEvent, 
-  CellExecutedEvent, 
-  ScrollEvent, 
-  ActiveCellChangedEvent, 
-  OpenNotebookEvent, 
-  AddCellEvent, 
-  RemoveCellEvent 
+  NotebookSaveEvent,
+  CellExecutionEvent,
+  NotebookScrollEvent,
+  ActiveCellChangeEvent,
+  NotebookOpenEvent,
+  CellAddEvent,
+  CellRemoveEvent
 } from "./events";
 
 import { ISettingRegistry } from "@jupyterlab/settingregistry";
+
+import { Message, MessageLoop } from '@lumino/messaging';
+
+import { IDisposable } from '@lumino/disposable';
+
+import { ISignal, Signal } from '@lumino/signaling';
+
+
+export interface IHandler {
+  handle(msg: any): Promise<any> | void;
+}
 
 export class NotebookState {
 
@@ -73,12 +89,10 @@ export class NotebookState {
     this._cellState = new WeakMap<Cell<ICellModel>, { changed: boolean, output: string }>();
     this._seq = 0;
 
-    this.updateCellState = this.updateCellState.bind(this);
-
     this.updateCellState();
     //  The notebook loaded; hence, update the cell state.
 
-    this._notebook.model.cells.changed.connect((
+    this._notebook.model?.cells.changed.connect((
       sender: IObservableUndoableList<ICellModel>,
       args: IObservableList.IChangedArgs<ICellModel>
     ) => {
@@ -91,7 +105,7 @@ export class NotebookState {
     }, this);
   }
 
-  updateCellState() {
+  private updateCellState() {
 
     this._notebook.widgets.forEach((cell: Cell<ICellModel>) => {
 
@@ -173,166 +187,142 @@ export class NotebookState {
       //  The cell state has been captured; hence, set all states to not changed.
     });
 
-    let msg = {
+    let state = {
       notebook: nbFormatNotebook,
       seq: this._seq
     }
 
     this._seq = this._seq + 1;
 
-    return msg;
+    return state;
   }
 }
 
-export class EventMessageHandler {
+export class MessageAdapter {
 
-  private _handlers: Array<IHandler>;
+  private _notebookPanel: NotebookPanel;
   private _userId: string;
-  private _path: string;
-  private _seq: number;
 
   constructor(
-    { handlers, userId, path }:
-      { handlers: Array<IHandler>, userId: string, path: string}
+    { userId, notebookPanel }:
+      { userId: string, notebookPanel: NotebookPanel }
   ) {
-
-    this._handlers = handlers;
     this._userId = userId;
-    this._path = path;
-
-    this.message = this.message.bind(this);
+    this._notebookPanel = notebookPanel;
   }
 
-  message(eventMessage: any) {
+  dispose() {
+    Signal.disconnectAll(this);
+  }
 
-    eventMessage = { ...eventMessage, ...{ user_id: this._userId, notebook_path: this._path} };
+  async adaptMessage(sender: any, data: any) {
 
-    for (let handler of this._handlers) {
-      handler.handle(eventMessage);
+    try {
+      data = { ...data, ...{ user_id: this._userId, notebook_path: this._notebookPanel.context.path } };
+
+      let res = await requestAPI<any>('event', { method: 'POST', body: JSON.stringify(data) });
+  
+      console.log("JL Server Response: ", res)
+    }
+    catch (e) {
+      console.error(e);
     }
   }
 }
 
-const PLUGIN_ID = 'hwf-jupyterlab-telemetry:plugin';
+export const PLUGIN_ID = 'hwf-jupyterlab-telemetry:telemetry';
 
-/**
- * Initialization data for the hwf-jupyterlab-telemetry extension.
- */
-const extension: JupyterFrontEndPlugin<object> = {
+const extension: JupyterFrontEndPlugin<void> = {
   id: PLUGIN_ID,
   autoStart: true,
   requires: [
     INotebookTracker,
-    IDocumentManager,
     ISettingRegistry
   ],
-  activate: (
+  activate: async (
     app: JupyterFrontEnd,
     notebookTracker: INotebookTracker,
-    documentManager: IDocumentManager,
     settingRegistry: ISettingRegistry
   ) => {
-    console.log("JupyterLab extension hwf-jupyterlab-telemetry is activated!");
+    console.log("JupyterLab extension etc-jupyterlab-telemetry is activated!");
 
-    (async function () {
+    let settings: ISettingRegistry.ISettings;
+    let resource: string = "id";
+    let userId: string;
 
-      let resource: string = "id";
-      let userId: string;
+    settings = await settingRegistry.load(PLUGIN_ID); // in order to get settings.
 
-      // try { // to get the user userId.
-      //   userId = await requestAPI<any>(resource);
-      // } catch (e) {
-      //   console.error(`Error on GET /hwf-jupyterlab-telemetry/${resource}.\n${e}`);
-      // }
+    userId = app.serviceManager.settings.serverSettings.token;
 
-      // userId = (userId == "UNDEFINED" ? app.serviceManager.settings.serverSettings.token : userId);
+    notebookTracker.widgetAdded.connect(
+      async (sender: INotebookTracker, notebookPanel: NotebookPanel) => {
 
-      userId = app.serviceManager.settings.serverSettings.token;
-
-      notebookTracker.widgetAdded.connect(async (sender: INotebookTracker, notebookPanel: NotebookPanel) => {
-
-        let settings: ISettingRegistry.ISettings;
-        let awsAPIGatewayHandler: IHandler;
+        let notebookState: NotebookState;
 
         await notebookPanel.revealed;
         await notebookPanel.sessionContext.ready;
-        await app.restored; // before getting the Settings.
 
-        settings = await settingRegistry.load(PLUGIN_ID); // in order to get settings.
+        let messageAdapter = new MessageAdapter({ userId, notebookPanel });
 
-        if (!awsAPIGatewayHandler) {
+        notebookState = new NotebookState({ notebookPanel: notebookPanel });
 
-          awsAPIGatewayHandler = new AWSAPIGatewayHandler({
-            settings: settings,
-            url: "https://telemetry.mentoracademy.org",
-            bucket: "telemetry-s3-aws-edtech-labs-si-umich-edu",
-            path: "refactor-test"
-          });
-        }
-
-        let notebookState = new NotebookState({ notebookPanel: notebookPanel });
-
-        let eventMessageHandler = new EventMessageHandler({ 
-          handlers: [awsAPIGatewayHandler], 
-          userId,  
-          path: notebookPanel.context.path
-        });
-
-        // Events
-        new SaveNotebookEvent({
+        let notebookSaveEvent = new NotebookSaveEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
 
-        new CellExecutedEvent({
+        notebookSaveEvent.notebookSaved.connect(messageAdapter.adaptMessage, messageAdapter);
+
+        let cellExecutionEvent = new CellExecutionEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
 
-        new ScrollEvent({
+        cellExecutionEvent.cellExecuted.connect(messageAdapter.adaptMessage, messageAdapter);
+
+        let notebookScrollEvent = new NotebookScrollEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
 
-        new ActiveCellChangedEvent({
+        notebookScrollEvent.notebookScrolled.connect(messageAdapter.adaptMessage, messageAdapter);
+
+        let activeCellChangeEvent = new ActiveCellChangeEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
 
-        new OpenNotebookEvent({
+        activeCellChangeEvent.activeCellChanged.connect(messageAdapter.adaptMessage, messageAdapter);
+
+        let notebookOpenEvent = new NotebookOpenEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
 
-        new AddCellEvent({
+        notebookOpenEvent.notebookOpened.connect(messageAdapter.adaptMessage, messageAdapter);
+
+        let cellAddEvent = new CellAddEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
 
-        new RemoveCellEvent({
+        cellAddEvent.cellAdded.connect(messageAdapter.adaptMessage, messageAdapter);
+
+        let cellRemoveEvent = new CellRemoveEvent({
           notebookState: notebookState,
           notebookPanel: notebookPanel,
-          settings,
-          handler: eventMessageHandler
+          settings
         });
+
+        cellRemoveEvent.cellRemoved.connect(messageAdapter.adaptMessage, messageAdapter);
 
       });
-
-    })();
-
-    return {};
   }
 };
 

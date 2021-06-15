@@ -1,0 +1,160 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "title": "HWF JupyterLab Settings",
+  "description": "Settings for HWF JupyterLab telemetry.",
+  "properties": {
+    "handler": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "HWF JupyterLab Handlers",
+      "description": "Settings for HWF JupyterLab handlers.",
+      "properties": {
+        "mentoracademy.org/handlers/AWSAPIGatewayHandler": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        }
+      },
+      "default": {
+        "mentoracademy.org/handlers/AWSAPIGatewayHandler": {}
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "HWF JupyterLab Events",
+      "description": "Settings for HWF JupyterLab events.",
+      "properties": {
+        "mentoracademy.org/schemas/events/1.0.0/NotebookSaveEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        },
+        "mentoracademy.org/schemas/events/1.0.0/NotebookOpenEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        },
+        "mentoracademy.org/schemas/events/1.0.0/CellRemoveEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        },
+        "mentoracademy.org/schemas/events/1.0.0/CellAddEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        },
+        "mentoracademy.org/schemas/events/1.0.0/CellExecutionEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        },
+        "mentoracademy.org/schemas/events/1.0.0/NotebookScrollEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        },
+        "mentoracademy.org/schemas/events/1.0.0/ActiveCellChangeEvent": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "",
+          "description": "",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "default": {
+            "enable": true
+          }
+        }
+      },
+      "default": {
+        "mentoracademy.org/schemas/events/1.0.0/NotebookSaveEvent": {},
+        "mentoracademy.org/schemas/events/1.0.0/NotebookOpenEvent": {},
+        "mentoracademy.org/schemas/events/1.0.0/CellRemoveEvent": {},
+        "mentoracademy.org/schemas/events/1.0.0/CellAddEvent": {},
+        "mentoracademy.org/schemas/events/1.0.0/CellExecutionEvent": {},
+        "mentoracademy.org/schemas/events/1.0.0/NotebookScrollEvent": {},
+        "mentoracademy.org/schemas/events/1.0.0/ActiveCellChangeEvent": {}
+      }
+    }
+  },
+  "default": {
+    "handler": {},
+    "event": {}
+  }
+}

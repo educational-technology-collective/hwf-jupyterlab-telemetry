@@ -1,10 +1,11 @@
-
 import {
     NotebookPanel,
     INotebookModel,
     Notebook,
     NotebookActions
 } from "@jupyterlab/notebook";
+
+import { ISignal, Signal } from '@lumino/signaling';
 
 import {
     Cell,
@@ -13,47 +14,49 @@ import {
 
 import {
     IObservableList,
-    IObservableUndoableList,
-    IObservableString
+    IObservableUndoableList
 } from "@jupyterlab/observables";
 
 import {
     DocumentRegistry
 } from "@jupyterlab/docregistry";
 
-
-import {
-    ICellMeta
-} from './types';
-
-import { EventMessageHandler, NotebookState } from "./index"
+import { NotebookState } from "./index"
 import { ISettingRegistry } from "@jupyterlab/settingregistry";
 import { SettingsSupplicant } from "./settings_supplicant";
+
+export interface ICellMeta {
+    index: number;
+    id: any;
+}
 
 interface INotebookEventOptions {
     notebookState: NotebookState;
     notebookPanel: NotebookPanel;
-    handler: EventMessageHandler;
     settings: ISettingRegistry.ISettings;
 }
 
-export class SaveNotebookEvent extends SettingsSupplicant {
+export class NotebookSaveEvent extends SettingsSupplicant {
 
+    private _notebookSaved: Signal<NotebookSaveEvent, any> = new Signal(this);
     private _notebookPanel: NotebookPanel;
-    private _handler: EventMessageHandler;
     private _notebookState: NotebookState;
 
-    constructor({ notebookState, notebookPanel, settings, handler }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/SaveNotebookEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/NotebookSaveEvent"
         });
 
         this._notebookState = notebookState;
         this._notebookPanel = notebookPanel;
-        this._handler = handler;
 
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(
@@ -79,11 +82,13 @@ export class SaveNotebookEvent extends SettingsSupplicant {
                 }
             }
 
-            this._handler.message({
-                ...{
-                    event_name: "save_notebook",
-                    cells: cells
-                }, ...this._notebookState.getNotebookState()
+            let notebookState = this._notebookState.getNotebookState();
+
+            this._notebookSaved.emit({
+                event_name: "save_notebook",
+                cells: cells,
+                notebook: notebookState.notebook,
+                seq: notebookState.seq
             });
         }
     }
@@ -95,26 +100,33 @@ export class SaveNotebookEvent extends SettingsSupplicant {
     disable(): void {
         this._notebookPanel.context.saveState.disconnect(this.event, this);
     }
+
+    get notebookSaved(): ISignal<NotebookSaveEvent, any> {
+        return this._notebookSaved
+    }
 }
 
-export class CellExecutedEvent extends SettingsSupplicant {
+export class CellExecutionEvent extends SettingsSupplicant {
 
+    private _cellExecuted: Signal<CellExecutionEvent, any> = new Signal(this);
     private _notebook: Notebook;
-    private _handler: EventMessageHandler;
     private _notebookState: NotebookState;
 
-    constructor({ notebookState, notebookPanel, settings, handler }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/CellExecutedEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/CellExecutionEvent"
         });
 
         this._notebookState = notebookState;
-        this._handler = handler;
-
         this._notebook = notebookPanel.content;
 
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(_: any, args: { notebook: Notebook; cell: Cell<ICellModel> }): void {
@@ -128,11 +140,13 @@ export class CellExecutedEvent extends SettingsSupplicant {
                 }
             ]
 
-            this._handler.message({
-                ...{
-                    event_name: "cell_executed",
-                    cells: cells
-                }, ...this._notebookState.getNotebookState()
+            let notebookState = this._notebookState.getNotebookState();
+
+            this._cellExecuted.emit({
+                event_name: "cell_executed",
+                cells: cells,
+                notebook: notebookState.notebook,
+                seq: notebookState.seq
             });
         }
     }
@@ -144,30 +158,38 @@ export class CellExecutedEvent extends SettingsSupplicant {
     disable(): void {
         NotebookActions.executed.disconnect(this.event, this);
     }
+
+    get cellExecuted(): ISignal<CellExecutionEvent, any> {
+        return this._cellExecuted
+    }
 }
 
 
-export class ScrollEvent extends SettingsSupplicant {
+export class NotebookScrollEvent extends SettingsSupplicant {
 
+    private _notebookScrolled: Signal<NotebookScrollEvent, any> = new Signal(this);
     private _notebook: Notebook;
-    private _handler: EventMessageHandler;
     private _notebookState: NotebookState;
 
     private _timeout: number;
 
-    constructor({ notebookState, notebookPanel, handler, settings }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/ScrollEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/NotebookScrollEvent"
         });
 
         this._notebookState = notebookState;
         this._notebook = notebookPanel.content;
-        this._handler = handler;
 
         this.event = this.event.bind(this);
 
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(e: Event): void {
@@ -201,11 +223,13 @@ export class ScrollEvent extends SettingsSupplicant {
                 cells.push({ id, index });
             }
 
-            this._handler.message({
-                ...{
-                    event_name: "scroll",
-                    cells: cells
-                }, ...this._notebookState.getNotebookState()
+            let notebookState = this._notebookState.getNotebookState();
+
+            this._notebookScrolled.emit({
+                event_name: "scroll",
+                cells: cells,
+                notebook: notebookState.notebook,
+                seq: notebookState.seq
             });
 
         }, 1000);
@@ -218,25 +242,33 @@ export class ScrollEvent extends SettingsSupplicant {
     disable(): void {
         this._notebook.node.removeEventListener("scroll", this.event, false);
     }
+
+    get notebookScrolled(): ISignal<NotebookScrollEvent, any> {
+        return this._notebookScrolled
+    }
 }
 
-export class ActiveCellChangedEvent extends SettingsSupplicant {
+export class ActiveCellChangeEvent extends SettingsSupplicant {
 
-    private _handler: EventMessageHandler;
+    private _activeCellChanged: Signal<ActiveCellChangeEvent, any> = new Signal(this);
     private _notebook: Notebook;
     private _notebookState: NotebookState;
 
-    constructor({ notebookState, notebookPanel, handler, settings }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/ActiveCellChangedEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/ActiveCellChangeEvent"
         });
 
         this._notebookState = notebookState;
         this._notebook = notebookPanel.content;
-        this._handler = handler;
 
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(send: Notebook, args: Cell<ICellModel>): void {
@@ -248,11 +280,13 @@ export class ActiveCellChangedEvent extends SettingsSupplicant {
             }
         ];
 
-        this._handler.message({
-            ...{
-                event_name: "active_cell_changed",
-                cells: cells
-            }, ...this._notebookState.getNotebookState()
+        let notebookState = this._notebookState.getNotebookState();
+
+        this._activeCellChanged.emit({
+            event_name: "active_cell_changed",
+            cells: cells,
+            notebook: notebookState.notebook,
+            seq: notebookState.seq
         });
     }
 
@@ -263,43 +297,55 @@ export class ActiveCellChangedEvent extends SettingsSupplicant {
     disable(): void {
         this._notebook.activeCellChanged.disconnect(this.event, this);
     }
+
+    get activeCellChanged(): ISignal<ActiveCellChangeEvent, any> {
+        return this._activeCellChanged
+    }
 }
 
-export class OpenNotebookEvent extends SettingsSupplicant {
+export class NotebookOpenEvent extends SettingsSupplicant {
 
-    private _handler: EventMessageHandler;
+    private _notebookOpened: Signal<NotebookOpenEvent, any> = new Signal(this);
     private _notebook: Notebook;
     private _notebookState: NotebookState;
     private _enable: boolean;
 
-    constructor({ notebookState, notebookPanel, handler, settings }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/OpenNotebookEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/NotebookOpenEvent"
         });
 
         this._notebookState = notebookState;
         this._notebook = notebookPanel.content;
-        this._handler = handler;
 
         setTimeout(this.event.bind(this));
+
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(): void {
 
-        if (!this._enable)
+        if (!this._enable) {
             return;
+        }
 
         let cells = this._notebook.widgets.map((cell: Cell<ICellModel>, index: number) =>
             ({ id: cell.model.id, index: index })
         );
 
-        this._handler.message({
-            ...{
-                event_name: "open_notebook",
-                cells: cells
-            }, ...this._notebookState.getNotebookState()
+        let notebookState = this._notebookState.getNotebookState();
+
+        this._notebookOpened.emit({
+            event_name: "open_notebook",
+            cells: cells,
+            notebook: notebookState.notebook,
+            seq: notebookState.seq
         });
     }
 
@@ -310,25 +356,33 @@ export class OpenNotebookEvent extends SettingsSupplicant {
     disable(): void {
         this._enable = false;
     }
+
+    get notebookOpened(): ISignal<NotebookOpenEvent, any> {
+        return this._notebookOpened
+    }
 }
 
-export class AddCellEvent extends SettingsSupplicant {
+export class CellAddEvent extends SettingsSupplicant {
 
-    private _handler: EventMessageHandler;
+    private _cellAdded: Signal<CellAddEvent, any> = new Signal(this);
     private _notebook: Notebook;
     private _notebookState: NotebookState;
 
-    constructor({ notebookState, notebookPanel, handler, settings }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/AddCellEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/CellAddEvent"
         });
 
         this._notebookState = notebookState;
         this._notebook = notebookPanel.content;
-        this._handler = handler;
 
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(
@@ -339,11 +393,13 @@ export class AddCellEvent extends SettingsSupplicant {
 
             let cells = [{ id: args.newValues[0].id, index: args.newIndex }];
 
-            this._handler.message({
-                ...{
-                    event_name: "add_cell",
-                    cells: cells
-                }, ...this._notebookState.getNotebookState()
+            let notebookState = this._notebookState.getNotebookState();
+
+            this._cellAdded.emit({
+                event_name: "add_cell",
+                cells: cells,
+                notebook: notebookState.notebook,
+                seq: notebookState.seq
             });
         }
     }
@@ -355,25 +411,34 @@ export class AddCellEvent extends SettingsSupplicant {
     disable(): void {
         this._notebook.model.cells.changed.disconnect(this.event, this);
     }
+
+    get cellAdded(): ISignal<CellAddEvent, any> {
+        return this._cellAdded
+    }
 }
 
 
-export class RemoveCellEvent extends SettingsSupplicant {
+export class CellRemoveEvent extends SettingsSupplicant {
 
-    private _handler: EventMessageHandler;
+    private _cellRemoved: Signal<CellRemoveEvent, any> = new Signal(this);
     private _notebook: Notebook;
     private _notebookState: NotebookState;
 
-    constructor({ notebookState, notebookPanel, handler, settings }: INotebookEventOptions) {
+    constructor({ notebookState, notebookPanel, settings }: INotebookEventOptions) {
         super({
             settings,
             key: "event",
-            URN: "mentoracademy.org/schemas/events/1.0.0/RemoveCellEvent"
+            URN: "mentoracademy.org/schemas/events/1.0.0/CellRemoveEvent"
         });
 
         this._notebookState = notebookState;
         this._notebook = notebookPanel.content;
-        this._handler = handler;
+
+        notebookPanel.disposed.connect(this.dispose, this);
+    }
+
+    dispose() {
+        Signal.disconnectAll(this);
     }
 
     event(
@@ -384,11 +449,13 @@ export class RemoveCellEvent extends SettingsSupplicant {
 
             let cells = [{ id: args.oldValues[0].id, index: args.oldIndex }];
 
-            this._handler.message({
-                ...{
-                    event_name: "remove_cell",
-                    cells: cells
-                }, ...this._notebookState.getNotebookState()
+            let notebookState = this._notebookState.getNotebookState();
+
+            this._cellRemoved.emit({
+                event_name: "remove_cell",
+                cells: cells,
+                notebook: notebookState.notebook,
+                seq: notebookState.seq
             });
         }
     }
@@ -399,5 +466,9 @@ export class RemoveCellEvent extends SettingsSupplicant {
 
     disable(): void {
         this._notebook.model.cells.changed.disconnect(this.event, this);
+    }
+
+    get cellRemoved(): ISignal<CellRemoveEvent, any> {
+        return this._cellRemoved
     }
 }
